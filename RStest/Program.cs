@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace RStest
 {
@@ -46,7 +47,7 @@ namespace RStest
             myDict["Jack Matthews"].Add("The Night Listener", 6);
             myDict["Jack Matthews"].Add("You, Me and Dupree", 7);
 
-            myDict.Add("Toby", new Dictionary<string, int>() { { "Snakes on a Plane", 7 } });
+            myDict.Add("Toby", new Dictionary<string, int>() { { "Snakes on a Plane", 9 } });
             myDict["Toby"].Add("Superman Returns", 8);
             myDict["Toby"].Add("You, Me and Dupree", 2);
 
@@ -62,7 +63,11 @@ namespace RStest
 
             Console.WriteLine(CoefR(myDict, "Lisa Rose", "Gene Seymour"));
 
-            
+            foreach(var film in GetRecomendations(myDict, "Toby"))
+            {
+                Console.WriteLine(film);
+            }
+
             Console.ReadKey();
         }
 
@@ -72,38 +77,96 @@ namespace RStest
             List<int> rating1 = new List<int>();
             List<int> rating2 = new List<int>();
 
-            double SumRating1 = 0;
-            double SumRating2 = 0;
-            double SumMultiRating = 0;
-            double SumSqRating1 = 0;
-            double SumSqRating2= 0;
+            double sumRating1 = 0;
+            double sumRating2 = 0;
+            double sumMultiRating = 0;
+            double sumSqRating1 = 0;
+            double sumSqRating2 = 0;
             double n = 0;
-            
 
-            foreach(var f1 in dict[person1].Keys)
+
+            foreach (var f1 in dict[person1].Keys)
             {
-                foreach(var f2 in dict[person2].Keys)
+                foreach (var f2 in dict[person2].Keys)
                 {
                     if (f1 == f2)
                     {
-                        SumRating1 = SumRating1 + dict[person1][f1];
-                        SumRating2 = SumRating2 + dict[person2][f2];
-                        SumMultiRating = SumMultiRating + dict[person1][f1] * dict[person2][f2];
-                        SumSqRating1 = SumSqRating1 + Math.Pow(dict[person1][f1], 2);
-                        SumSqRating2 = SumSqRating2 + Math.Pow(dict[person2][f2], 2);
+                        sumRating1 = sumRating1 + dict[person1][f1];
+                        sumRating2 = sumRating2 + dict[person2][f2];
+                        sumMultiRating = sumMultiRating + dict[person1][f1] * dict[person2][f2];
+                        sumSqRating1 = sumSqRating1 + Math.Pow(dict[person1][f1], 2);
+                        sumSqRating2 = sumSqRating2 + Math.Pow(dict[person2][f2], 2);
                         n = n + 1;
+                        break;
                     }
                 }
             }
 
 
-            double Cxy = SumMultiRating - (SumRating1 * SumRating2) / n;
-            double Cx = SumSqRating1 - Math.Pow(SumRating1, 2) / n;
-            double Cy = SumSqRating2 - Math.Pow(SumRating2, 2) / n;
+            double Cxy = sumMultiRating - (sumRating1 * sumRating2) / n;
+            double Cx = sumSqRating1 - Math.Pow(sumRating1, 2) / n;
+            double Cy = sumSqRating2 - Math.Pow(sumRating2, 2) / n;
 
             double R = Cxy / (Math.Sqrt(Cx * Cy));
             //Console.WriteLine(S.ToString());
             return R;
+        }
+
+        static List<string> GetRecomendations(Dictionary<string, Dictionary<string, int>> dict, string person)
+        {
+            Dictionary<string, double> sumScore = new Dictionary<string, double>();
+            Dictionary<string, double> sumR = new Dictionary<string, double>();
+            Dictionary<string, double> recomendationsDict = new Dictionary<string, double>();
+            List<string> recomendationsList = new List<string>();
+
+            foreach (var other in dict.Keys)
+            {
+                if (other == person)
+                {
+                    continue;
+                }
+                double r = CoefR(dict, other, person);
+
+                if (r > 0)
+                {
+                    foreach (var film in dict[other].Keys)
+                    {
+                        if (!dict[person].ContainsKey(film))
+                        {
+                            if (sumR.ContainsKey(film))
+                            {
+                                sumR[film] = sumR[film] + r;
+                            }
+                            else
+                            {
+                                sumR[film] = r;
+                            }
+
+                            if (sumScore.ContainsKey(film))
+                            {
+                                sumScore[film] = sumScore[film] + r * dict[other][film];
+                            }
+                            else
+                            {
+                                sumScore[film] = r * dict[other][film];
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (var film in sumR.Keys)
+            {
+                recomendationsDict.Add(film, sumScore[film] / sumR[film]);
+            }
+
+
+            foreach(var film in recomendationsDict.OrderByDescending(x => x.Key))
+            {
+                recomendationsList.Add(film.Key);
+            }
+
+            return recomendationsList;
         }
     }
 }
